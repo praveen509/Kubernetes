@@ -1,0 +1,26 @@
+Kubeadm Install:
+apt install ebtables ethtool
+sudo apt-get install docker-ce=17.03.2~ce-0~ubuntu-xenial
+sudo apt-get install -qy kubelet=1.8.0-00 kubectl=1.8.0-00 kubeadm=1.8.0-00
+
+In my "Ubuntu 16.04", I use next steps to completely remove and clean Kubernetes (installed with "apt-get"):
+kubeadm reset
+sudo apt-get purge kubeadm kubectl kubelet kubernetes-cni kube*   
+sudo apt-get autoremove  
+sudo rm -rf ~/.kube
+
+Master:
+kubeadm init
+if it fails try kubeadm init --skip-preflight-checks
+-->you have to become a non-root user the execute below
+ mkdir -p $HOME/.kube
+  sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+  sudo chown $(id -u):$(id -g) $HOME/.kube/config
+  kubectl apply --filename https://git.io/weave-kube-1.6
+  
+  
+Nodes:(your master should be pingable to that node)
+kubeadm join --token f66402.4ac72a08dba1ccf7 172.31.86.246:6443 --discovery-token-ca-cert-hash sha256:bf1136131e1c616336df803c94934da4277691c4e53c384086033ca533d4482f --skip-preflight-checks
+
+
+
