@@ -24,3 +24,7 @@ kubeadm join --token f66402.4ac72a08dba1ccf7 172.31.86.246:6443 --discovery-toke
 
 
 
+ERROR:
+usethis:
+kubeadm reset
+ --ignore-preflight-errors=NumCPU
