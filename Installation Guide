@@ -1,0 +1,93 @@
+https://alibaba-cloud.medium.com/how-to-install-and-deploy-kubernetes-on-ubuntu-16-04-6769fd1646db
+sudo su
+apt-get update -y
+swapoff -a
+nano /etc/fstab
+Comment the swapfile
+nano /etc/hostname - To modify hostname
+vi /etc/network/interfaces - Set a static IP adddress
+vi /etc/hosts - Update the host file
+sudo apt-get install openssh-server
+
+//Run the following commads before installing the kube environment
+apt-get update && apt-get install -y apt-transport-https curl
+curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
+cat <<EOF >/etc/apt/sources.list.d/kubernetes.list
+deb http://apt.kubernetes.io/ kubernetes-xenial main
+EOF
+apt-get update
+
+//Install kubeadm, Kubelet and Kubectl
+apt-get install -y kubelet kubeadm kubectl
+
+//Update the kubernetes configuration
+#vi /etc/systemd/system/kubelet.service.d/10-kubeadm.conf
+
+//Add the below after the last line
+Environment="cgroup-driver=systemd/cgroup-driver=cgroups"
+
+//On master
+sudo kubeadm init --pod-network-cidr=<> --apiserver-advertise-address=<ip-address-of-master>
+// for starting a calico CNI 192.168.0.0/16 or For starting a Flannel CNT: 10.244.0.0/16
+
+EX: sudo kubeadm init --pod-network-cidr=192.168.0.0/16 --apiserver-advertise-address=172.31.49.136 --ignore-preflight-errors all
+
+// For creating a pod based on calico
+#kubectl apply -f https://docs.projectcalico.org/v3.0/getting-started/kubernetes/installation/hosted/kubeadm/1.7/calico.yml
+
+kubectl apply -f https://docs.projectcalico.org/manifests/calico.yaml
+
+kubectl get pods -o wide --all-namespaces
+
+// For creating a dashboard first - bring this up before starting the nodes
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.3.1/aio/deploy/recommended.yaml
+
+//To enable proxy and continues with new terminal windows
+kubectl proxy
+
+//To create a service account for your dash board
+kubectl create serviceaccount dashboard -n default
+
+//To add cluster binding rules for ur roles on dashboard
+
+kubectl create clusterrolebinding dashboard-admin -n default \
+  --clusterrole=cluster-admin \
+  --serviceaccount=default:dashboard
+  
+//To get the secret key to be pasted onto the dashboard token pwd.copy the outcoming secret key
+kubectl get secret $(kubectl get serviceaccount dashboard -o jsonpath="{.secrets[0].name}") -o jsonpath="{.data.token}" | base64 --decode
+
+//Go to http://localhost:8081/api/v1/namespaces/kube-system/services/https:kubernetes-dashboard:/proxy/#!/login for accessing the dashboard
+
+//On nodes run the join command that was abtained on ''kubeadm init'. Replace the ip with that of master's token and discovery flags from below line
+
+kubeadm join 172.31.49.136:6443 --token n7xzut.crxgs4mu2xsgh6eo \
+        --discovery-token-ca-cert-hash sha256:72531613a8d673ad21d90554dbb2dc3843054323df13e0b8a6fb5f84f761a64b
+
+  
+----------------------------------------------------------------------------------------------------------------------------------------------------------
+
+vi /etc/docker/daemon.json
+
+Your Kubernetes control-plane has initialized successfully!
+
+To start using your cluster, you need to run the following as a regular user:
+
+  mkdir -p $HOME/.kube
+  sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+  sudo chown $(id -u):$(id -g) $HOME/.kube/config
+
+Alternatively, if you are the root user, you can run:
+
+  export KUBECONFIG=/etc/kubernetes/admin.conf
+
+You should now deploy a pod network to the cluster.
+Run "kubectl apply -f [podnetwork].yaml" with one of the options listed at:
+  https://kubernetes.io/docs/concepts/cluster-administration/addons/
+
+Then you can join any number of worker nodes by running the following on each as root:
+
+kubeadm join 172.31.49.136:6443 --token tvkgog.nukkt33gnc31qq8f \
+        --discovery-token-ca-cert-hash sha256:ae76577a5d94ccc32ff40edce4b8c82352d6c5401a741c66c582e0d62af0063c
+		
+Starting to serve on 127.0.0.1:8001
